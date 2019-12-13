@@ -96,16 +96,20 @@ impl SignedVote {
 }
 
 impl lite::Vote for SignedVote {
-    fn validator_id(&self) -> account::Id {
-        self.validator_address
-    }
-
     fn sign_bytes(&self) -> Vec<u8> {
         self.vote.bytes_vec_length_delimited()
     }
 
     fn signature(&self) -> &[u8] {
         self.signature.as_ref()
+    }
+}
+
+impl lite::ValidatorId for SignedVote {
+    type Id = account::Id;
+
+    fn validator_id(&self) -> Self::Id {
+        self.validator_address
     }
 }
 

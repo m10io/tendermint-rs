@@ -1,12 +1,10 @@
 // can we abstract this away and use a generic identifier instead ?
 // Ie. something that just implements Eq ?
-use crate::account::Id;
-
 use crate::block::Height;
 use crate::Hash;
-#[allow(clippy::all)]
-use crate::Time;
+
 use failure::_core::fmt::Debug;
+use std::time::SystemTime;
 
 /// TrustedState stores the latest state trusted by a lite client,
 /// including the last header and the validator set to use to verify
@@ -34,8 +32,12 @@ pub trait SignedHeader {
 /// that should sign this header, and the hash of the validator
 /// set that should sign the next header.
 pub trait Header: Debug {
+    /// The header's notion of (bft-)time.
+    /// Wee assume it can be converted to SystemTime.
+    type Time: Into<SystemTime>;
+
     fn height(&self) -> Height;
-    fn bft_time(&self) -> Time;
+    fn bft_time(&self) -> Self::Time;
     fn validators_hash(&self) -> Hash;
     fn next_validators_hash(&self) -> Hash;
 
@@ -59,7 +61,7 @@ pub trait ValidatorSet {
     fn total_power(&self) -> u64;
 
     /// Fetch validator via their ID (ie. their address).
-    fn validator(&self, val_id: Id) -> Option<Self::Validator>;
+    fn validator(&self, val_id: impl ValidatorId) -> Option<Self::Validator>;
 
     /// Return the number of validators in this validator set.
     fn len(&self) -> usize;
@@ -68,10 +70,15 @@ pub trait ValidatorSet {
     fn is_empty(&self) -> bool;
 }
 
+pub trait ValidatorId {
+    type Id: Eq;
+    fn validator_id(&self) -> Self::Id;
+}
+
 /// Validator has a voting power and can verify
 /// its own signatures. Note it must have implicit access
 /// to its public key material to verify signatures.
-pub trait Validator {
+pub trait Validator: ValidatorId {
     fn power(&self) -> u64;
     fn verify_signature(&self, sign_bytes: &[u8], signature: &[u8]) -> bool;
 }
@@ -108,8 +115,7 @@ pub trait Commit {
 /// since the particular values aren't relevant to correctness here - the Vote is already
 /// within an enum at the VoteSet level indicating which block it is for, and the chain id
 /// is only necessary to avoid slashing in the multi chain context.
-pub trait Vote {
-    fn validator_id(&self) -> Id;
+pub trait Vote: ValidatorId {
     fn sign_bytes(&self) -> Vec<u8>;
     fn signature(&self) -> &[u8];
 }
@@ -130,6 +136,7 @@ pub trait TrustThreshold {
 #[derive(Debug)]
 pub enum Error {
     Expired,
+    DurationOutOfRange,
     NonSequentialHeight,
     NonIncreasingHeight,
 

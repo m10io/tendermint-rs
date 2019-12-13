@@ -109,8 +109,7 @@ impl lite::Commit for SignedHeader {
             };
 
             // check if this vote is from a known validator
-            let val_id = vote.validator_id();
-            let val = match validators.validator(val_id) {
+            let val = match validators.validator(*vote) {
                 Some(v) => v,
                 None => continue,
             };

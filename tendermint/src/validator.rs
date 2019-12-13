@@ -9,6 +9,8 @@ use signatory::{
 };
 use signatory_dalek::Ed25519Verifier;
 use subtle_encoding::base64;
+use crate::lite::types::Validator;
+use crate::lite::ValidatorId;
 
 /// Validator set contains a vector of validators
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -87,7 +89,8 @@ pub struct Info {
     pub proposer_priority: Option<ProposerPriority>,
 }
 
-impl lite::Validator for Info {
+impl Validator for Info {
+
     fn power(&self) -> u64 {
         self.voting_power.value()
     }
@@ -100,6 +103,13 @@ impl lite::Validator for Info {
             }
         }
         false
+    }
+}
+
+impl ValidatorId for Info {
+    type Id = account::Id;
+    fn validator_id(&self) -> Self::Id {
+        self.address
     }
 }
 
