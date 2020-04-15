@@ -4,7 +4,6 @@ use std::{
     fmt::{self, Display},
     str::FromStr,
 };
-use subtle_encoding::hex;
 
 /// ABCI transaction data.
 ///
@@ -28,9 +27,8 @@ impl AsRef<[u8]> for Data {
 
 impl Display for Data {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for byte in &self.0 {
-            write!(f, "{:02X}", byte)?;
-        }
+        let string = base64::encode(&self.0);
+        write!(f, "{}", string)?;
         Ok(())
     }
 }
@@ -40,9 +38,7 @@ impl FromStr for Data {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // Accept either upper or lower case hex
-        let bytes = hex::decode_upper(s)
-            .or_else(|_| hex::decode(s))
-            .map_err(|_| Kind::Parse)?;
+        let bytes = base64::decode(s).map_err(|_| Kind::Parse)?;
 
         Ok(Data(bytes))
     }
